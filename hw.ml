@@ -13,11 +13,11 @@ let rec uniques firstList secondList =
     | x::y -> if not (contains x firstList) then
                    uniques (firstList@[x]) y
               else uniques firstList y
-let rec compress x = 
-    if not (x = []) then
-    uniques [List.hd x]  (List.tl x)
-    else
-    x;; 
+let rec compress list = 
+    match list with 
+    |[] -> list
+    |x::y -> uniques [x] y;;
+
 compress  ["a";"a";"b";"c";"c";"a";"a";"d";"e";"e";"e"];;
 
 
@@ -25,7 +25,7 @@ compress  ["a";"a";"b";"c";"c";"a";"a";"d";"e";"e";"e"];;
 let rec validList curList list func =
     match list with 
     |[] -> curList
-    |x::y ->if not(func(List.hd list)) then
+    |x::y ->if not(func x) then
                 validList (curList@[x]) y func
             else
                 validList curList y func;;
@@ -36,14 +36,18 @@ remove_if [1;2;3;4;5] (fun x -> x mod 2 = 1);;
 
 (*Question 5*)
 let rec removeFirstN list numToRemove = 
-    if numToRemove > 0 && List.length list > 0 then
-       removeFirstN (List.tl list) (numToRemove - 1)
+    if numToRemove > 0 then
+       match list with
+       |[] -> list
+       |x::y ->removeFirstN y (numToRemove - 1)
     else
         list;;
 
 let rec takeFirstN subList list numToTake = 
-    if numToTake > 0 && List.length list > 0 then
-        takeFirstN (subList@[List.hd list]) (List.tl list) (numToTake-1)
+    if numToTake > 0 then
+        match list with 
+       |[] -> subList  
+       |x::y -> takeFirstN (subList@[x]) y (numToTake-1)
     else
         subList;;
 
@@ -62,10 +66,10 @@ slice ["a";"b";"c";"d";"e";"f";"g";"h"] 3 20;;
 let rec findEquivalence func curVal updated =
     match updated with 
     |[] -> updated@[[curVal]]
-    |x::y -> if func (List.hd x) curVal then
-             [(x@[curVal])]@y
-             else
-             [x]@(findEquivalence func curVal y);;
+    |x::y -> match x with 
+            |[] -> updated
+            |a::b -> if func a curVal then [(x@[curVal])]@y
+                     else [x]@(findEquivalence func curVal y);;
 
 let rec checkEquivalence func diffVals list =
     match list with 
@@ -128,11 +132,10 @@ let rec pow a b =
        a * pow a (b-1);;
 
 let rec createPolynomial func  list =
-    if List.length list > 1 then
-       let (coeff, exponent) = List.hd list in
-       createPolynomial ((fun x -> func(x) + coeff * (pow x exponent))) (List.tl list)
-    else 
-       func;;
+    match list with
+    |[] -> func
+    |x::y -> let (coeff, exponent) = x in
+          createPolynomial ((fun z -> func(z) + coeff * (pow z exponent))) (y)
 
 let polynomial list = createPolynomial (fun x -> 0) list;;
 let f = polynomial [3, 3; -2, 1; 5, 0];;
@@ -160,21 +163,6 @@ let powerset input = findSets input [] [];;
 
 powerset [3;4;10;11];;
 
-(*Trying to sort 11*)
-(* let rec findSize list size= 
-    match list with 
-    |[] -> size
-    |x::y -> findSize y (size + 1)
-    ;;
+let squares = List.fold_left (fun a b -> a + b * b) 0 (List.init 5 (fun x -> x * 2));;
 
-let rec findCorrectSlot test list =
-    match list with 
-    |[] -> list@[[test]]
-    |x::y ->match x with 
-            |[] -> list
-            |a::b -> if findSize test 0 = findSize a 0 then [x@[test]]@y
-                     else 
-
-let rec sortBySize list sorting = 
-    match list with 
-    |[] -> sorting *)
+let cartesian_product = let x = [1;2;3] in let y = ["a";"b";"c"] in List.concat_map(fun z -> List.map (fun j -> (z,j)) y) x;;
