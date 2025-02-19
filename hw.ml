@@ -1,23 +1,10 @@
 print_endline("testing testing");;
 (*Question 3*)
-let rec contains element list =
-    match list with 
-    | [] -> false
-    | x::y -> if x = element then true
-              else contains element y;;
-
-
-let rec uniques firstList secondList = 
-    match secondList with
-    | [] -> firstList
-    | x::y -> if not (contains x firstList) then
-                   uniques (firstList@[x]) y
-              else uniques firstList y
 let rec compress list = 
-    match list with 
-    |[] -> list
-    |x::y -> uniques [x] y;;
-
+    match list with
+    | [] -> list
+    | [a] -> list
+    |x::y::z -> if x = y then compress(y::z) else [x]@compress(y::z);;
 compress  ["a";"a";"b";"c";"c";"a";"a";"d";"e";"e";"e"];;
 
 
