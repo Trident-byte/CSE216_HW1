@@ -1,4 +1,3 @@
-print_endline("testing testing");;
 (*Question 3*)
 let rec compress list = 
     match list with
