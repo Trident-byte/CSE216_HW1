@@ -1,5 +1,5 @@
 
-class hw {
+class hw1 {
 
     public static void main(String[] args) {
         int[] test = {1, 2, 5};
@@ -18,7 +18,7 @@ class hw {
             return acc;
         } else {
             int[] newArray = new int[array.length - 1];
-            System.out.println(initialLength - array.length);
+//            System.out.println(initialLength - array.length);
             acc[initialLength - array.length] = array;
             System.arraycopy(array, 0, newArray, 0, array.length - 1);
             return recSuffices(acc, newArray, initialLength);

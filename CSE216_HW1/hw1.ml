@@ -4,7 +4,7 @@ let rec compress list =
     | [] -> list
     | [a] -> list
     |x::y::z -> if x = y then compress(y::z) else [x]@compress(y::z);;
-compress  ["a";"a";"b";"c";"c";"a";"a";"d";"e";"e";"e"];;
+(* compress  ["a";"a";"b";"c";"c";"a";"a";"d";"e";"e";"e"];; *)
 
 
 (*Question 4*)
@@ -18,7 +18,7 @@ let rec validList curList list func =
 
 let remove_if list func = validList [] list func;;
 
-remove_if [1;2;3;4;5] (fun x -> x mod 2 = 1);;
+(* remove_if [1;2;3;4;5] (fun x -> x mod 2 = 1);; *)
 
 (*Question 5*)
 let rec removeFirstN list numToRemove = 
@@ -38,15 +38,15 @@ let rec takeFirstN subList list numToTake =
         subList;;
 
 let slice list start stop =
-    if start > stop then
+    if start >= stop then
         []
     else
         let firstStep = removeFirstN list start in
         takeFirstN [] firstStep (stop - start);;
 
-slice ["a";"b";"c";"d";"e";"f";"g";"h"] 2 6;;
+(* slice ["a";"b";"c";"d";"e";"f";"g";"h"] 2 6;;
 slice ["a";"b";"c";"d";"e";"f";"g";"h"] 3 2;;
-slice ["a";"b";"c";"d";"e";"f";"g";"h"] 3 20;;
+slice ["a";"b";"c";"d";"e";"f";"g";"h"] 3 20;; *)
 
 (*Question 6*)
 let rec findEquivalence func curVal updated =
@@ -65,8 +65,8 @@ let rec checkEquivalence func diffVals list =
 
 let equivs func list = checkEquivalence func [] list;;
 
-equivs (=) [2;10];;
- equivs (fun x y -> (=) (x mod 2) (y mod 2)) [1; 2; 3; 4; 5; 6; 7; 8];;
+(* equivs (=) [2;10];;
+ equivs (fun x y -> (=) (x mod 2) (y mod 2)) [1; 2; 3; 4; 5; 6; 7; 8];; *)
 
 (*Question 7*)
 let rec isPrime num possibleDivisor =
@@ -94,7 +94,7 @@ let goldbach_pairs num =
     else
       findPairs [] num 3;;
 
-goldbach_pairs 28;;
+(* goldbach_pairs 28;; *)
 
 (*Question 8*)
 let rec identical_on firstFunc secondFunc list = 
@@ -104,11 +104,11 @@ let rec identical_on firstFunc secondFunc list =
               identical_on firstFunc secondFunc (y)
             else
               false;;
-
+(* 
 let f i = i * i;;
 let g i = 3 * i;;
 identical_on f g [3];;
-identical_on f g [1; 2; 3];;
+identical_on f g [1; 2; 3];; *)
 
 (*Question 9*)
 let rec pow a b = 
@@ -124,8 +124,8 @@ let rec createPolynomial func  list =
           createPolynomial ((fun z -> func(z) + coeff * (pow z exponent))) (y)
 
 let polynomial list = createPolynomial (fun x -> 0) list;;
-let f = polynomial [3, 3; -2, 1; 5, 0];;
-f 2;;
+(* let f = polynomial [3, 3; -2, 1; 5, 0];;
+f 2;; *)
 
 (*Question 10*)
 let rec findSuffices suffixes list = 
@@ -135,9 +135,9 @@ let rec findSuffices suffixes list =
 
 let suffixes list = findSuffices [] list;;
 
-suffixes [1; 2; 5];;
+(* suffixes [1; 2; 5];; *)
 
-(*Question 11 not completed*)
+(*Question 11*)
 let rec findSets list subSets curList = 
     match list with 
     |[] -> subSets@[curList]
@@ -147,7 +147,7 @@ let rec findSets list subSets curList =
 
 let powerset input = findSets input [] [];;
 
-powerset [3;4;10;11];;
+(* powerset [3;4;10;11];; *)
 
 let squares = List.fold_left (fun a b -> a + b * b) 0 (List.init 5 (fun x -> x * 2));;
 
