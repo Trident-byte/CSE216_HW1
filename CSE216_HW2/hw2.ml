@@ -131,32 +131,94 @@ type expr =
 | Mul of expr * expr;;
 
 
-let rec mul first second = match first with
-|Const(a) -> a;;
-|Var(a) -> a;;
-|Add(a,b) -> a
-|Mul(a,b) -> a;;
+let mulTest const var = if const = 1 then Var(var)
+                        else if const = 0 then Const(const)
+                        else Mul(Const(const), Var(var));;
+
+let addTest const var = if const = 0 then Var(var)
+                        else Add(Const(const), Var(var));;
+
+let addThree const first second = match first,second with
+|Const(a), _ -> Add(Const(const + a), second)
+|_, Const(a) -> Add(Const(const + a), first)
+|_,_ -> Add(Const(const), Add(first,second));;
+
+let addFour first second third fourth = match first,second with
+|Const(a), _ -> Add(Const(a), second)
+|_, Const(a) -> Add(Const(a), first)
+|_,_ -> Add(Const(0), Add(first,second));;
+
+let addFinale result result2 = 
+match result, result2 with 
+|Const(a), Const(b) -> Const(a+b)
+|Const(a), Var(b) -> addTest a b
+|Const(a), Add(b,c) -> addThree a b c
+|Const(a), Mul(b,c) -> Add(Const(a), Mul(b,c))
+|Var(a), Const(b) -> addTest b a
+|Var(a), Var(b) -> Add(Var(a), Var(b))
+|Var(a), Add(b,c) -> Add(Var(a), Add(b,c))
+|Var(a), Mul(b,c) -> Add(Var(a), Mul(b,c))
+|Add(a,b), Const(c) -> addThree c a b
+|Add(a,b), Var(c) -> Add(Add(a,b), Var(c))
+|Add(a,b), Add(c,d) -> addFour a b c d
+|Add(a,b), Mul(c,d) -> Add(Add(a,b), Mul(c,d))
+|Mul(a,b), _ -> Add(Mul(a,b), result2);;
+                                       
+                                    
+
+let rec mul first second = match first, second with 
+|Const(a), Const(b) -> Const(a*b)
+|Const(a), Var(b) -> mulTest a b
+|Const(a), Add(b,c) -> b
+|Const(a), Mul(b,c) -> b
+|Var(a), Const(b) ->  mulTest b a 
+|Var(a), Var(b) -> Mul(Var(a), Var(b))
+|Var(a), Add(b,c) -> b
+|Var(a), Mul(b,c) -> b
+|Add(a,b), _ -> a
+|Mul(a,b), _ -> a;;
+
+let rec add first second = match first, second with 
+|Const(a), Const(b) -> Const(a+b)
+|Const(a), Var(b) -> addTest a b
+|Const(a), Add(b,c) -> let result = add b c in 
+                       (match result with 
+                       |Const(d) -> Const(d+a)
+                       |Var(d) -> addTest a d
+                       |Add(d,e) -> addThree a d e
+                       |Mul(d,e) -> Add(Const(a), Mul(d,e))
+                       )
+|Const(a), Mul(b,c) -> if a = 0 then Mul(b,c)
+                       else Add(Const(a), Mul(b,c))
+|Var(a), Const(b) -> addTest b a
+|Var(a), Var(b) -> Add(Var(a), Var(b))
+|Var(a), Add(b,c) -> let result = add b c in 
+                     (match result with 
+                     |Const(d) -> addTest d a
+                     |Var(d) -> Add(Var(a), Var(d))
+                     |Add(d,e) -> Add(Var(a), Add(d,e))
+                     |Mul(d,e) -> Add(Var(a), Mul(d,e))
+                     ) 
+|Var(a), Mul(b,c) -> Add(Var(a), Mul(b,c))
+|Add(a,b), _ -> let result = add a b in 
+                       (match second with 
+                        |Const(c) -> (match result with 
+                                      |Const(d) -> Const(c+d)
+                                      |Var(d) -> addTest c d
+                                      |Add(d,e) -> addThree c d e
+                                      |Mul(d,e) -> if c = 0 then Mul(d,e)
+                                                   else Add(Mul(d,e), Const(c))
+                                      )
+                        |Var(c) -> (match result with 
+                                    |Const(d) -> addTest d c
+                                    |Var(d) -> Add(Var(d), Var(c))
+                                    |Add(d,e) -> Add(Add(d,e), Var(c))
+                                    |Mul(d,e) -> Add(Mul(d,e), Var(c))
+                                   )
+                        |Add(c,d) -> let result2 = add c d in addFinale result result2
+                        |Mul(c,d) -> let result2 = mul c d in addFinale result result2
+                      )
+|Mul(a,b), _ -> a;;
 
 
-
-
-let rec add first second = match first with
-|Const(a) -> match second with
-             |Const(b) -> Const(a+b)
-             |Var(b) -> if a = 0 then Var(b) else Add(Const(a), Var(b))
-             |Add(b,c)-> add(b,c)
-             |Mul(b,c) -> mul(b,c)
-|Var(a) -> match second with
-           |Const(b) -> if b = 0 then Var(a) else Add(Var(a), Const(b))
-           |Var(b) -> Add(Var(a),Var(b))
-           |Add(b,c)-> add(b,c)
-           |Mul(b,c) ->b
-|Add(a,b) -> a
-|Mul(a,b) -> a;;
-
-
-let reduce expression = match expression with
-|Const(a) -> Const(a)
-|Var(a) -> Var(a)
-|Add(a,b) -> a
-|Mul(a,b) -> a;
+let x = add (Add(Const(2), Const(3))) (Mul(Const(2),Var("b")));;
