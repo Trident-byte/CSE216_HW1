@@ -24,8 +24,8 @@ right: ('a,'b) tree
 type operator = 
 |Add
 |Sub
-|Multiply
-|Divide;;
+|Mul
+|Div;;
 
 type operand =
 |Int of int
@@ -61,6 +61,10 @@ let test = Operand(Int(1));;
 items_of_parameter_type example_tree  test;;
 
 (*Question 3*)
+#load "str.cma";;
+open Str;;
+
+(*Check to see if the expression is properly parenthesized using recursion*)
 let rec checkParaenthesis treeStr parenCount = match treeStr with 
 |"" -> parenCount = 0;
 |_ -> let firstChar = String.sub treeStr 0 1 in 
@@ -70,8 +74,81 @@ let rec checkParaenthesis treeStr parenCount = match treeStr with
            else checkParaenthesis (String.sub treeStr 1 ((String.length treeStr) - 1)) (parenCount - 1)
       else checkParaenthesis (String.sub treeStr 1 ((String.length treeStr) - 1)) parenCount;;
 
-let test = "()()";;
-checkParaenthesis test 0 ;;
+(*Checks the list of regex expression against the arithmetic expression if it finds a match it will return false, otherwise true*)
+let rec checkValidaity treeStr regexList = match regexList with
+                                          |[] -> true
+                                          |h::t -> try if (Str.search_forward h treeStr 0) = -1 then true
+                                                       else false
+                                                   with Not_found -> checkValidaity treeStr t;;
+
+(*Explanation of regex
+First regex checks for integers with an operator to its left with no space
+Second regex checks for integers with an operator to its right with no space
+Third regex checks for floats with an operator to its left with no space
+Foruth regex checks for floats with an operator to its right with no space*)
+let regexList = [Str.regexp "[1-9][0-9]*[\\+\\-\\*\\/]";Str.regexp "[\\+\\-\\*\\/][1-9][0-9]*";Str.regexp "[1-9][0-9]*\\.[0-9]+[\\+\\-\\*\\/]";
+                 Str.regexp "[\\+\\-\\*\\/][1-9][0-9]*\\.[0-9]+"]
+
+let test = "(1.0 + 5)";;
+let ans = checkValidaity test regexList;;
+
+
+
+let createLeaf numStr = try Leaf(Int(int_of_string numStr))
+                        with Failure("int_of_string") -> Leaf(Float(float_of_string numStr));;
+
+let checkForFloats left right = match left,right with 
+|Leaf(Int(a)), Leaf(Int(b)) -> Leaf(Float(float_of_int a)), Leaf(Float(float_of_int b))
+|Leaf(Int(a)), _ -> Leaf(Float(float_of_int a)), right
+|_, Leaf(Int(b)) -> left, Leaf(Float(float_of_int b))
+|_,_ -> (left,right);;
+
+let findDelimiter str = if String.contains str ' ' then let first = String.index str ' ' in
+     if String.contains str ')' then let second = String.index str ')' in 
+        if first > second then second else first
+     else first
+  else if String.contains str ')' then String.index str ')'
+  else -1;;
+
+let rec infix_to_pre infix operands operators  = match infix with
+|"" -> List.hd operands
+|_->let remainder = (String.sub infix 1 ((String.length infix) - 1)) in  match (String.get infix 0) with
+|'(' -> infix_to_pre remainder operands operators
+|' ' -> infix_to_pre remainder operands operators
+|')' -> (infix_to_pre remainder ([(List.hd operators) ^ " " ^ (List.hd operands) ^ " " ^(List.hd (List.tl operands))]@(List.tl (List.tl operands))) (List.tl operators))
+|_ -> let cutoff = findDelimiter infix in  
+let subString = (String.sub infix 0 cutoff) in 
+let rest = (String.sub infix (cutoff) ((String.length infix) - cutoff)) in
+if Char.code (String.get infix 0) - 48 < 0 || Char.code (String.get infix 0) - 48 > 10 then infix_to_pre rest operands ([subString]@operators)
+else infix_to_pre rest ([subString]@operands) operators
+
+;;
+
+let rec build_tree_rec lst = match lst with
+|[] -> failwith("Empty tree")
+|[a] -> if Char.code (String.get a 0) - 48 < 0 || Char.code (String.get a 0) - 48 > 10 then failwith ("Operator missing operands")
+else (createLeaf a, [])
+|h::t -> if Char.code (String.get h 0) - 48 < 0 || Char.code (String.get h 0) - 48 > 10 then 
+let (leftTree, rest) = build_tree_rec t in let (rightTree, leftover) = build_tree_rec rest in 
+match h with 
+|"+" -> (Tree{operator = Add; left = leftTree; right = rightTree}, leftover)
+|"-" -> (Tree{operator = Sub; left = leftTree; right = rightTree}, leftover)
+|"/" -> (Tree{operator = Div; left = leftTree; right = rightTree}, leftover)
+|"*" -> (Tree{operator = Mul; left = leftTree; right = rightTree}, leftover)
+|_ -> let (leftFloat, rightFloat) = checkForFloats leftTree rightTree in 
+match h with
+|"+." -> (Tree{operator = Add; left = leftFloat; right = rightFloat}, leftover)
+|"-." -> (Tree{operator = Sub; left = leftFloat; right = rightFloat}, leftover)
+|"/." -> (Tree{operator = Div; left = leftFloat; right = rightFloat}, leftover)
+|"*." -> (Tree{operator = Mul; left = leftFloat; right = rightFloat}, leftover)
+|_ -> failwith "Invalid character"
+
+else (createLeaf h, t);; 
+
+let build_tree str = let prefix = String.split_on_char ' ' (infix_to_pre str [] []) in let (tree, empty) = build_tree_rec prefix in tree;;
+
+let t = build_tree "(1 + (2 * 3))";;
+let v = evaluate t;; (* v should be the int value 7 *)
 
 (*Question 4*)
 let add first second = match first, second with 
@@ -107,21 +184,9 @@ let rec evaluate tree = match tree with
                |Mul -> mul first second
                |Div -> div first second;;
 
-let example_tree = Tree{
-  operator = Add;
-  left=Tree{
-    operator=Add;
-    left = Leaf (Float(2.0));
-    right = Leaf (Int(1))
-  };
-  right=Tree{
-    operator=Sub;
-    left=Leaf (Int(2));
-    right=Leaf (Int(1))
-  };
-}
 
-let x = evaluate example_tree;;
+let t = build_tree (1 + (2 * 3));;
+let v = evaluate t;; (* v should be the int value 7 *)
 
 (*Work on question 5*)
 type expr =
@@ -143,82 +208,48 @@ let addThree const first second = match first,second with
 |_, Const(a) -> Add(Const(const + a), first)
 |_,_ -> Add(Const(const), Add(first,second));;
 
-let addFour first second third fourth = match first,second with
-|Const(a), _ -> Add(Const(a), second)
-|_, Const(a) -> Add(Const(a), first)
-|_,_ -> Add(Const(0), Add(first,second));;
-
-let addFinale result result2 = 
-match result, result2 with 
-|Const(a), Const(b) -> Const(a+b)
-|Const(a), Var(b) -> addTest a b
-|Const(a), Add(b,c) -> addThree a b c
-|Const(a), Mul(b,c) -> Add(Const(a), Mul(b,c))
-|Var(a), Const(b) -> addTest b a
-|Var(a), Var(b) -> Add(Var(a), Var(b))
-|Var(a), Add(b,c) -> Add(Var(a), Add(b,c))
-|Var(a), Mul(b,c) -> Add(Var(a), Mul(b,c))
-|Add(a,b), Const(c) -> addThree c a b
-|Add(a,b), Var(c) -> Add(Add(a,b), Var(c))
-|Add(a,b), Add(c,d) -> addFour a b c d
-|Add(a,b), Mul(c,d) -> Add(Add(a,b), Mul(c,d))
-|Mul(a,b), _ -> Add(Mul(a,b), result2);;
-                                       
-                                    
-
 let rec mul first second = match first, second with 
 |Const(a), Const(b) -> Const(a*b)
 |Const(a), Var(b) -> mulTest a b
-|Const(a), Add(b,c) -> b
-|Const(a), Mul(b,c) -> b
+|Const(a), Add(b,c) -> Add(Mul(Const(a), b), Mul(Const(a), c))
+|Const(a), Mul(Const(b),c) -> Mul(Const(a*b), c)
+|Const(a), Mul(b, Const(c)) -> Mul(Const(a*c), b)
 |Var(a), Const(b) ->  mulTest b a 
-|Var(a), Var(b) -> Mul(Var(a), Var(b))
-|Var(a), Add(b,c) -> b
-|Var(a), Mul(b,c) -> b
-|Add(a,b), _ -> a
-|Mul(a,b), _ -> a;;
+|Add(a,b), Const(c) -> Add(Mul(Const(c), a), Mul(Const(c), b))
+|Add(a,b), Add(c,d) -> Add(Mul(c, Add(a,b)), Mul(d, Add(a,b)))
+|Add(a,b), Mul(c,d) -> Add(Mul(a, Mul(c,d)), Mul(b, Mul(c,d)))
+|Mul(Const(a),b), Const(c) -> Mul(Const(a*c), b)
+|Mul(a, Const(b)), Const(c) -> Mul(Const(b*c), a)
+|Mul(a,b), Add(c,d) -> Add(Mul(c, Mul(a,b)), Mul(d, Mul(a,b))) 
+|Mul(Const(a),b),Mul(Const(c),d) -> Mul(Const(a*c),Mul(b,d))
+|Mul(Const(a),b),Mul(c,Const(d)) -> Mul(Const(a*d), Mul(b,c))
+|Mul(a, Const(b)), Mul(Const(c), d) -> Mul(Const(b*c), Mul(a,d))
+|Mul(a, Const(b)), Mul(c, Const(d)) -> Mul(Const(b*d), Mul(a,c))
+|_,_ -> Mul(first, second);;
 
 let rec add first second = match first, second with 
 |Const(a), Const(b) -> Const(a+b)
 |Const(a), Var(b) -> addTest a b
-|Const(a), Add(b,c) -> let result = add b c in 
-                       (match result with 
-                       |Const(d) -> Const(d+a)
-                       |Var(d) -> addTest a d
-                       |Add(d,e) -> addThree a d e
-                       |Mul(d,e) -> Add(Const(a), Mul(d,e))
-                       )
+|Const(a), Add(b,c) -> addThree a b c
 |Const(a), Mul(b,c) -> if a = 0 then Mul(b,c)
                        else Add(Const(a), Mul(b,c))
 |Var(a), Const(b) -> addTest b a
-|Var(a), Var(b) -> Add(Var(a), Var(b))
-|Var(a), Add(b,c) -> let result = add b c in 
-                     (match result with 
-                     |Const(d) -> addTest d a
-                     |Var(d) -> Add(Var(a), Var(d))
-                     |Add(d,e) -> Add(Var(a), Add(d,e))
-                     |Mul(d,e) -> Add(Var(a), Mul(d,e))
-                     ) 
-|Var(a), Mul(b,c) -> Add(Var(a), Mul(b,c))
-|Add(a,b), _ -> let result = add a b in 
-                       (match second with 
-                        |Const(c) -> (match result with 
-                                      |Const(d) -> Const(c+d)
-                                      |Var(d) -> addTest c d
-                                      |Add(d,e) -> addThree c d e
-                                      |Mul(d,e) -> if c = 0 then Mul(d,e)
-                                                   else Add(Mul(d,e), Const(c))
-                                      )
-                        |Var(c) -> (match result with 
-                                    |Const(d) -> addTest d c
-                                    |Var(d) -> Add(Var(d), Var(c))
-                                    |Add(d,e) -> Add(Add(d,e), Var(c))
-                                    |Mul(d,e) -> Add(Mul(d,e), Var(c))
-                                   )
-                        |Add(c,d) -> let result2 = add c d in addFinale result result2
-                        |Mul(c,d) -> let result2 = mul c d in addFinale result result2
-                      )
-|Mul(a,b), _ -> a;;
+|Add(a,b), Const(c) -> addThree c a b
+|Add(Const(a),b), Add(c, Const(d)) -> Add(Const(a+d), Add(b,c))
+|Add(Const(a),b), Add(Const(c), d) -> Add(Const(a+c), Add(b,d))
+|Add(a,Const(b)), Add(c, Const(d)) -> Add(Const(b+d), Add(a,c))
+|Add(a,Const(b)), Add(Const(c),d) -> Add(Const(b+c), Add(a,d))
+|_,_ -> Add(first,second);;
+
+let rec reduce expr = 
+let newExpr = match expr with
+|Const(a) -> Const(a)
+|Var(a) -> Var(a)
+|Add(a,b) -> let c = reduce a in let d = reduce b in
+             add c d
+|Mul(a,b) -> let c = reduce a in let d = reduce b in
+             mul c d 
+in if newExpr = expr then expr else reduce newExpr;;
 
 
-let x = add (Add(Const(2), Const(3))) (Mul(Const(2),Var("b")));;
+let x = reduce (Mul (Const 1, (Add (Const 2, Const 4))));;
