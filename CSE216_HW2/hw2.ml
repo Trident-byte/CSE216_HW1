@@ -10,6 +10,7 @@ let rec walk_inorder tree = match tree with
 
 
 let test_inorder () = walk_inorder (Node(1,Node(2,Node(4,Leaf,Leaf),Node(5,Leaf,Leaf)),Node(3,Node(9,Leaf,Leaf),Node(0,Leaf,Leaf))));;
+test_inorder();
 
 (*Question 2*)
 type ('a,'b) tree =
@@ -142,7 +143,7 @@ let mul first second = match first, second with
 let div first second = match first, second with 
           |(Int(a), Int(b)) -> Int(a/b)
           |(Int(a), Float(b)) -> Float((float_of_int a ) /. b)
-          |(Float(a), Int(b)) -> Float((float_of_int b ) /. a)
+          |(Float(a), Int(b)) -> Float(a /. (float_of_int b))
           |(Float(a), Float(b)) -> Float(a /. b)
 
 (*Pattern matches the types to know which function to call*)
