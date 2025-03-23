@@ -61,42 +61,11 @@ let test = Operand(Int(1));;
 items_of_parameter_type example_tree  test;;
 
 (*Question 3*)
-#load "str.cma";;
-open Str;;
-
-(*Check to see if the expression is properly parenthesized using recursion*)
-let rec checkParaenthesis treeStr parenCount = match treeStr with 
-|"" -> parenCount = 0;
-|_ -> let firstChar = String.sub treeStr 0 1 in 
-      if firstChar = "(" then checkParaenthesis (String.sub treeStr 1 ((String.length treeStr) - 1)) (parenCount + 1)
-      else if firstChar = ")" then 
-           if parenCount = 0 then false
-           else checkParaenthesis (String.sub treeStr 1 ((String.length treeStr) - 1)) (parenCount - 1)
-      else checkParaenthesis (String.sub treeStr 1 ((String.length treeStr) - 1)) parenCount;;
-
-(*Checks the list of regex expression against the arithmetic expression if it finds a match it will return false, otherwise true*)
-let rec checkValidaity treeStr regexList = match regexList with
-                                          |[] -> true
-                                          |h::t -> try if (Str.search_forward h treeStr 0) = -1 then true
-                                                       else false
-                                                   with Not_found -> checkValidaity treeStr t;;
-
-(*Explanation of regex
-First regex checks for integers with an operator to its left with no space
-Second regex checks for integers with an operator to its right with no space
-Third regex checks for floats with an operator to its left with no space
-Foruth regex checks for floats with an operator to its right with no space*)
-let regexList = [Str.regexp "[1-9][0-9]*[\\+\\-\\*\\/]";Str.regexp "[\\+\\-\\*\\/][1-9][0-9]*";Str.regexp "[1-9][0-9]*\\.[0-9]+[\\+\\-\\*\\/]";
-                 Str.regexp "[\\+\\-\\*\\/][1-9][0-9]*\\.[0-9]+"]
-
-let test = "(1.0 + 5)";;
-let ans = checkValidaity test regexList;;
-
-
 
 let createLeaf numStr = try Leaf(Int(int_of_string numStr))
                         with Failure("int_of_string") -> Leaf(Float(float_of_string numStr));;
 
+(*Checks to see if either the left or right tree are int leaves, if so convert them to float leaves*)
 let checkForFloats left right = match left,right with 
 |Leaf(Int(a)), Leaf(Int(b)) -> Leaf(Float(float_of_int a)), Leaf(Float(float_of_int b))
 |Leaf(Int(a)), _ -> Leaf(Float(float_of_int a)), right
@@ -115,14 +84,12 @@ let rec infix_to_pre infix operands operators  = match infix with
 |_->let remainder = (String.sub infix 1 ((String.length infix) - 1)) in  match (String.get infix 0) with
 |'(' -> infix_to_pre remainder operands operators
 |' ' -> infix_to_pre remainder operands operators
-|')' -> (infix_to_pre remainder ([(List.hd operators) ^ " " ^ (List.hd operands) ^ " " ^(List.hd (List.tl operands))]@(List.tl (List.tl operands))) (List.tl operators))
+|')' -> (infix_to_pre remainder ([(List.hd operators) ^ " " ^ (List.hd (List.tl operands)) ^ " " ^(List.hd operands)]@(List.tl (List.tl operands))) (List.tl operators))
 |_ -> let cutoff = findDelimiter infix in  
 let subString = (String.sub infix 0 cutoff) in 
 let rest = (String.sub infix (cutoff) ((String.length infix) - cutoff)) in
 if Char.code (String.get infix 0) - 48 < 0 || Char.code (String.get infix 0) - 48 > 10 then infix_to_pre rest operands ([subString]@operators)
-else infix_to_pre rest ([subString]@operands) operators
-
-;;
+else infix_to_pre rest ([subString]@operands) operators;;
 
 let rec build_tree_rec lst = match lst with
 |[] -> failwith("Empty tree")
@@ -143,14 +110,16 @@ match h with
 |"*." -> (Tree{operator = Mul; left = leftFloat; right = rightFloat}, leftover)
 |_ -> failwith "Invalid character"
 
-else (createLeaf h, t);; 
+else (createLeaf h, t);;  
 
 let build_tree str = let prefix = String.split_on_char ' ' (infix_to_pre str [] []) in let (tree, empty) = build_tree_rec prefix in tree;;
 
-let t = build_tree "(1 + (2 * 3))";;
-let v = evaluate t;; (* v should be the int value 7 *)
+let t = build_tree "(1 - (2 * 4))";;
 
 (*Question 4*)
+
+(*The four functions add, subtract, multiply or divide and also convert ints to floats if needed 
+  for the pattern matching*)
 let add first second = match first, second with 
           |(Int(a), Int(b)) -> Int(a+b)
           |(Int(a), Float(b)) -> Float((float_of_int a ) +. b)
@@ -176,6 +145,7 @@ let div first second = match first, second with
           |(Float(a), Int(b)) -> Float((float_of_int b ) /. a)
           |(Float(a), Float(b)) -> Float(a /. b)
 
+(*Pattern matches the types to know which function to call*)
 let rec evaluate tree = match tree with 
 |Leaf(a) -> a
 |Tree(node) -> let first = evaluate node.left in let second = evaluate node.right in match node.operator with
@@ -185,7 +155,7 @@ let rec evaluate tree = match tree with
                |Div -> div first second;;
 
 
-let t = build_tree (1 + (2 * 3));;
+let t = build_tree "(1 + (2 * 3))";;
 let v = evaluate t;; (* v should be the int value 7 *)
 
 (*Work on question 5*)
@@ -195,7 +165,7 @@ type expr =
 | Add of expr * expr
 | Mul of expr * expr;;
 
-
+(*Checks edge cases for multiplication and addition*)
 let mulTest const var = if const = 1 then Var(var)
                         else if const = 0 then Const(const)
                         else Mul(Const(const), Var(var));;
@@ -203,11 +173,13 @@ let mulTest const var = if const = 1 then Var(var)
 let addTest const var = if const = 0 then Var(var)
                         else Add(Const(const), Var(var));;
 
+(*Preforms communative property with one constant and an irreducible addition*)
 let addThree const first second = match first,second with
 |Const(a), _ -> Add(Const(const + a), second)
 |_, Const(a) -> Add(Const(const + a), first)
 |_,_ -> Add(Const(const), Add(first,second));;
 
+(*Checks all cases that are reducible and the wildcard pattern represents irreducible relationships*)
 let rec mul first second = match first, second with 
 |Const(a), Const(b) -> Const(a*b)
 |Const(a), Var(b) -> mulTest a b
@@ -215,6 +187,7 @@ let rec mul first second = match first, second with
 |Const(a), Mul(Const(b),c) -> Mul(Const(a*b), c)
 |Const(a), Mul(b, Const(c)) -> Mul(Const(a*c), b)
 |Var(a), Const(b) ->  mulTest b a 
+|Var(a), Add(b,c) -> Add(Mul(Var(a), b), Mul(Var(a), c))
 |Add(a,b), Const(c) -> Add(Mul(Const(c), a), Mul(Const(c), b))
 |Add(a,b), Add(c,d) -> Add(Mul(c, Add(a,b)), Mul(d, Add(a,b)))
 |Add(a,b), Mul(c,d) -> Add(Mul(a, Mul(c,d)), Mul(b, Mul(c,d)))
@@ -227,6 +200,7 @@ let rec mul first second = match first, second with
 |Mul(a, Const(b)), Mul(c, Const(d)) -> Mul(Const(b*d), Mul(a,c))
 |_,_ -> Mul(first, second);;
 
+(*Checks all cases that are reducible and the wildcard pattern represents irreducible relationships*)
 let rec add first second = match first, second with 
 |Const(a), Const(b) -> Const(a+b)
 |Const(a), Var(b) -> addTest a b
@@ -241,6 +215,7 @@ let rec add first second = match first, second with
 |Add(a,Const(b)), Add(Const(c),d) -> Add(Const(b+c), Add(a,d))
 |_,_ -> Add(first,second);;
 
+(*Recursively reduces by first reducing the left and right followed by using add or mul based on the expression*)
 let rec reduce expr = 
 let newExpr = match expr with
 |Const(a) -> Const(a)
@@ -249,7 +224,8 @@ let newExpr = match expr with
              add c d
 |Mul(a,b) -> let c = reduce a in let d = reduce b in
              mul c d 
+(*If there has been a reduction it will make sure the statement is irreducible by calling reduce again,*)
 in if newExpr = expr then expr else reduce newExpr;;
 
 
-let x = reduce (Mul (Const 1, (Add (Const 2, Const 4))));;
+let x = reduce (Mul(Add(Var "x", Const 2), Add(Var "x", Const 3)));;
