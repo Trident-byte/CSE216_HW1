@@ -63,15 +63,9 @@ items_of_parameter_type example_tree  test;;
 
 (*Question 3*)
 
-let createLeaf numStr = try Leaf(Int(int_of_string numStr))
-                        with Failure("int_of_string") -> Leaf(Float(float_of_string numStr));;
-
-(*Checks to see if either the left or right tree are int leaves, if so convert them to float leaves*)
-let checkForFloats left right = match left,right with 
-|Leaf(Int(a)), Leaf(Int(b)) -> Leaf(Float(float_of_int a)), Leaf(Float(float_of_int b))
-|Leaf(Int(a)), _ -> Leaf(Float(float_of_int a)), right
-|_, Leaf(Int(b)) -> left, Leaf(Float(float_of_int b))
-|_,_ -> (left,right);;
+let createLeaf numStr intOrFloat = match intOrFloat with
+|Int(a) -> Leaf(Int(int_of_string numStr))
+|Float(a) -> Leaf(Float(float_of_string numStr));;
 
 let findDelimiter str = if String.contains str ' ' then let first = String.index str ' ' in
      if String.contains str ')' then let second = String.index str ')' in 
@@ -84,7 +78,8 @@ let rec infix_to_pre infix operands operators  = match infix with
 |"" -> List.hd operands
 |_->let remainder = (String.sub infix 1 ((String.length infix) - 1)) in  match (String.get infix 0) with
 |'(' -> infix_to_pre remainder operands operators
-|' ' -> infix_to_pre remainder operands operators
+|' ' -> if String.length infix > 0 && (String.sub infix 1 1) = " " then failwith("Extra Space")
+        else infix_to_pre remainder operands operators
 |')' -> (infix_to_pre remainder ([(List.hd operators) ^ " " ^ (List.hd (List.tl operands)) ^ " " ^(List.hd operands)]@(List.tl (List.tl operands))) (List.tl operators))
 |_ -> let cutoff = findDelimiter infix in  
 let subString = (String.sub infix 0 cutoff) in 
@@ -92,29 +87,35 @@ let rest = (String.sub infix (cutoff) ((String.length infix) - cutoff)) in
 if Char.code (String.get infix 0) - 48 < 0 || Char.code (String.get infix 0) - 48 > 10 then infix_to_pre rest operands ([subString]@operators)
 else infix_to_pre rest ([subString]@operands) operators;;
 
-let rec build_tree_rec lst = match lst with
+let rec build_tree_rec lst intOrFloat = match lst with
 |[] -> failwith("Empty tree")
 |[a] -> if Char.code (String.get a 0) - 48 < 0 || Char.code (String.get a 0) - 48 > 10 then failwith ("Operator missing operands")
-else (createLeaf a, [])
+else (createLeaf a intOrFloat, [], intOrFloat)
 |h::t -> if Char.code (String.get h 0) - 48 < 0 || Char.code (String.get h 0) - 48 > 10 then 
-let (leftTree, rest) = build_tree_rec t in let (rightTree, leftover) = build_tree_rec rest in 
-match h with 
-|"+" -> (Tree{operator = Add; left = leftTree; right = rightTree}, leftover)
-|"-" -> (Tree{operator = Sub; left = leftTree; right = rightTree}, leftover)
-|"/" -> (Tree{operator = Div; left = leftTree; right = rightTree}, leftover)
-|"*" -> (Tree{operator = Mul; left = leftTree; right = rightTree}, leftover)
-|_ -> let (leftFloat, rightFloat) = checkForFloats leftTree rightTree in 
-match h with
-|"+." -> (Tree{operator = Add; left = leftFloat; right = rightFloat}, leftover)
-|"-." -> (Tree{operator = Sub; left = leftFloat; right = rightFloat}, leftover)
-|"/." -> (Tree{operator = Div; left = leftFloat; right = rightFloat}, leftover)
-|"*." -> (Tree{operator = Mul; left = leftFloat; right = rightFloat}, leftover)
-|_ -> failwith "Invalid character"
+if String.length h = 1 then 
+     let (leftTree, rest, isFloat1) = build_tree_rec t (Int(0)) in let (rightTree, leftover, isFloat2) = build_tree_rec rest (Int(0)) in 
+     match isFloat1 with 
+     |Float(a) -> failwith("Cannot perform the operation")
+     |_ -> match isFloat2 with 
+           |Float(a) -> failwith("Cannot perform the operation")
+           |_ -> match h with 
+                |"+" -> (Tree{operator = Add; left = leftTree; right = rightTree}, leftover, Int(0))
+                |"-" -> (Tree{operator = Sub; left = leftTree; right = rightTree}, leftover, Int(0))
+                |"/" -> (Tree{operator = Div; left = leftTree; right = rightTree}, leftover, Int(0))
+                |"*" -> (Tree{operator = Mul; left = leftTree; right = rightTree}, leftover, Int(0))
+                |_ -> failwith "Invalid Character"
+else 
+     let (leftTree, rest, isFloat1) = build_tree_rec t (Float(0.0)) in let (rightTree, leftover, isFloat2) = build_tree_rec rest (Float(0.0)) in 
+     match h with
+     |"+." -> (Tree{operator = Add; left = leftTree; right = rightTree}, leftover, Float(0.0))
+     |"-." -> (Tree{operator = Sub; left = leftTree; right = rightTree}, leftover, Float(0.0))
+     |"/." -> (Tree{operator = Div; left = leftTree; right = rightTree}, leftover, Float(0.0))
+     |"*." -> (Tree{operator = Mul; left = leftTree; right = rightTree}, leftover, Float(0.0))
+     |_ -> failwith "Invalid character"
 
-else (createLeaf h, t);;  
+else (createLeaf h intOrFloat, t, intOrFloat);;  
 
-let build_tree str = let prefix = String.split_on_char ' ' (infix_to_pre str [] []) in let (tree, empty) = build_tree_rec prefix in tree;;
-
+let build_tree str = let prefix = String.split_on_char ' ' (infix_to_pre str [] []) in let (tree, empty, finalType) = build_tree_rec prefix (Int(0)) in tree;;
 let t = build_tree "(1 - (2 * 4))";;
 
 (*Question 4*)
@@ -131,7 +132,7 @@ let sub first second = match first, second with
           |(Int(a), Int(b)) -> Int(a-b)
           |(Int(a), Float(b)) -> Float((float_of_int a ) -. b)
           |(Float(a), Int(b)) -> Float((float_of_int b ) -. a)
-          |(Float(a), Float(b)) -> Float(a +. b)
+          |(Float(a), Float(b)) -> Float(a -. b)
 
 
 let mul first second = match first, second with 
@@ -154,7 +155,6 @@ let rec evaluate tree = match tree with
                |Sub -> sub first second
                |Mul -> mul first second
                |Div -> div first second;;
-
 
 let t = build_tree "(1 + (2 * 3))";;
 let v = evaluate t;; (* v should be the int value 7 *)

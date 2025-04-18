@@ -22,6 +22,6 @@ public class Point implements Shape{
 
     @Override
     public String toString(){
-        return "(" + Math.round(x*100)/100.0 + ", " + Math.round(y*100)/100.0 + ")";
+        return "(" + String.format("%.2f", x ) + ", " + String.format("%.2f", y)+ ")";
     }
 }
