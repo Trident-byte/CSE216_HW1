@@ -62,7 +62,7 @@ public class Square implements Shape {
             newPoints.add(new Point(point.name, point.x + x, point.y + y));
         }
         Point[] argOfPoints = new Point[4];
-        return new Square(newPoints.toArray(argOfPoints)); // TODO
+        return new Square(newPoints.toArray(argOfPoints));
     }
 
     @Override
@@ -71,7 +71,7 @@ public class Square implements Shape {
         for(Point point: points){
             representation += point.toString() + "; ";
         }
-        return representation + "]"; // TODO
+        return representation + "]";
     }
 
     @Override
@@ -95,6 +95,10 @@ public class Square implements Shape {
         else{
             return value;
         }
+    }
+
+    public List<Point> getPoints(){
+        return points;
     }
 
     public static void main(String... args) {
