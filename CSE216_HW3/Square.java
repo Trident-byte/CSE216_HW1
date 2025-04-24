@@ -11,7 +11,7 @@ import java.util.Set;
  */
 public class Square implements Shape {
     private List<Point> points;
-    private static double tolerance = 0.00001;
+    private static double tolerance = 0.0000001;
     /**
      * The constructor accepts an array of <code>Point</code>s to form the vertices of the square. If more than four
      * points are provided, only the first four are considered by this constructor.
@@ -24,12 +24,18 @@ public class Square implements Shape {
     public Square(Point... vertices) {
         points = new ArrayList<>();
         Point lastPoint = null;
+        double sideLength = -1;
         for(int i = 0; i < 4 && i < vertices.length; i++){
             Point curPoint = vertices[i];
-            if(lastPoint != null && Math.abs(lastPoint.x - curPoint.x) > tolerance && Math.abs(lastPoint.y - curPoint.y) > tolerance){
-//                System.out.println(lastPoint.toString());
-//                System.out.println(curPoint.toString());
-                throw new IllegalArgumentException("Not a valid of sequence of points for a square");
+            if(lastPoint != null) {
+                if (sideLength < 0) {
+                    sideLength = correction(getSideLengths(lastPoint, curPoint));
+                }
+                else{
+                    if(correction(getSideLengths(lastPoint, curPoint)) != sideLength){
+                        throw new IllegalArgumentException("Points do not form a square");
+                    }
+                }
             }
             points.add(curPoint);
             lastPoint = curPoint;
@@ -42,13 +48,14 @@ public class Square implements Shape {
         List<Point> newPoints = new ArrayList<>();
         Point center = this.center();
         //Precalculates the cosine and sine to prevent repeated calculations
-        double cosine = Math.cos(Math.toRadians(degrees));
-        double sine = Math.sin(Math.toRadians(degrees));
-        System.out.println(sine);
+        double cosine = correction(Math.cos(Math.toRadians(degrees)));
+        double sine = correction(Math.sin(Math.toRadians(degrees)));
         for(Point point: points){
             double xDist = point.x - center.x;
             double yDist = point.y - center.y;
-            newPoints.add(new Point(point.name, correction(center.x + xDist * cosine - yDist * sine), correction(center.y + xDist *sine + yDist * cosine)));
+            double newX = center.x + xDist * cosine - yDist * sine;
+            double newY = center.y + xDist *sine + yDist * cosine;
+            newPoints.add(new Point(point.name, correction(newX), correction(newY)));
         }
         //Needed so that I can use the toArray method that returns an array of type T
         Point[] argOfPoints = new Point[4];
@@ -88,7 +95,7 @@ public class Square implements Shape {
     }
 
     private static double correction(double value){
-        double rounded = Math.ceil(value);
+        double rounded = Math.round(value);
         if(Math.abs(rounded - value) < tolerance){
             return rounded;
         }
@@ -118,6 +125,11 @@ public class Square implements Shape {
 
         // prints: [(C, 4.0, 4.0); (D, 1.0, 4.0); (A, 1.0, 1.0); (B, 4.0, 1.0)]
         // note that the names denote which point has moved where
-        System.out.println(sq2.rotateBy(90));
+        System.out.println(sq2.rotateBy(270));
+    }
+
+    private double getSideLengths(Point p1, Point p2){
+        return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) +
+                (p1.y - p2.y) * (p1.y - p2.y));
     }
 }
