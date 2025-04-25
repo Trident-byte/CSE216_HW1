@@ -6,23 +6,6 @@ import java.util.*;
  *
  * @author Brian Chau
  */
-class AngleTracker{
-    public double angle;
-    public Point point;
-    public AngleTracker(double angle, Point point){
-        this.angle = angle;
-        this.point = point;
-    }
-}
-
-class AngleComparator implements Comparator<AngleTracker>{
-    @Override
-    public int compare(AngleTracker o1, AngleTracker o2) {
-        if(o1.angle > o2.angle) return 1;
-        else if(o1.angle == o2.angle) return 0;
-        else return -1;
-    }
-}
 
 public class Square implements Shape {
     private List<Point> points;
@@ -46,7 +29,8 @@ public class Square implements Shape {
         }
         Point center = center();
         for(Point point: points){
-            angle = determineAngle(point.x - center.x, point.y - center.y);
+            Point adjustedCenter = new Point("test", point.x - center.x, point.y - center.y);
+            angle = determineAngle(adjustedCenter);
             if(angle < prevAngle){
                 throw new IllegalArgumentException("Points not in the correct order");
             }
@@ -58,7 +42,6 @@ public class Square implements Shape {
     public Square rotateBy(int degrees) {
         //Uses list rather than array to ensure abstractions can be used properly
         List<Point> newPoints = new ArrayList<>();
-        List<AngleTracker> angles = new ArrayList<>();
         Point center = this.center();
         //Precalculates the cosine and sine to prevent repeated calculations
         double cosine = correction(Math.cos(Math.toRadians(degrees)));
@@ -68,15 +51,16 @@ public class Square implements Shape {
             double yDist = point.y - center.y;
             double newX = xDist * cosine - yDist * sine;
             double newY = xDist *sine + yDist * cosine;
-            Point newPoint = new Point(point.name, correction(center.x + newX), correction(center().y + newY));
-            angles.add(new AngleTracker(determineAngle(newX, newY), newPoint));
+            Point newPoint = new Point(point.name, newX, newY);
+            newPoints.add(newPoint);
         }
-        angles.sort(new AngleComparator());
-        //Needed so that I can use the toArray method that returns an array of type T
+        newPoints.sort(Comparator.comparing(this::determineAngle));
+        for(Point point: newPoints){
+            point.x += center.x;
+            point.y += center.y;
+        }
+//        //Needed so that I can use the toArray method that returns an array of type T
         Point[] argOfPoints = new Point[4];
-        for(AngleTracker angleTrack: angles){
-            newPoints.add(angleTrack.point);
-        }
         return new Square(newPoints.toArray(argOfPoints));
     }
 
@@ -146,23 +130,13 @@ public class Square implements Shape {
         System.out.println(sq2.rotateBy(90));
     }
 
-    private double getSideLengths(Point p1, Point p2){
-        return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) +
-                (p1.y - p2.y) * (p1.y - p2.y));
-    }
-
-    private boolean rightAngle(Point p1, Point p2, Point p3){
-        double dotProduct = correction((p1.x - p2.x) * (p3.x - p2.x) + (p1.y - p2.y) * (p3.y - p2.y));
-        return dotProduct == 0;
-    }
-
-    private double determineAngle(double x, double y){
-        double angle = Math.atan(y/x);
-        if(y < 0 && x < 0){
+    private double determineAngle(Point p){
+        double angle = Math.atan(p.y/p.x);
+        if(p.y < 0 && p.x < 0){
             angle += Math.PI;
         }
         else if(angle < 0){
-            if(y < 0) {
+            if(p.y < 0) {
                 angle += 2 * Math.PI;
             }
             else{
