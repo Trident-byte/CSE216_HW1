@@ -58,13 +58,11 @@ public class HigherOrderUtils {
         }
     };
 
-    public static <T,S extends BiFunction<T,T,T>> T zip(List<T> args, List<S> bifunctions){
+    public static <T> T zip(List<T> args, List<? extends BiFunction<T,T,T>> bifunctions){
         for(int i = 0; i < bifunctions.size(); i++){
-            S function = bifunctions.get(i);
             T arg1 = args.get(i);
             T args2 = args.get(i+1);
-            args.set(i+1, function.apply(arg1, args2));
-            System.out.println(args.toString());
+            args.set(i+1, bifunctions.get(i).apply(arg1, args2));
         }
         return args.get(args.size() -1);
     }

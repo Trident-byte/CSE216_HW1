@@ -1,7 +1,4 @@
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * The class impementing squares.
@@ -9,6 +6,24 @@ import java.util.Set;
  *
  * @author Brian Chau
  */
+class AngleTracker{
+    public double angle;
+    public Point point;
+    public AngleTracker(double angle, Point point){
+        this.angle = angle;
+        this.point = point;
+    }
+}
+
+class AngleComparator implements Comparator<AngleTracker>{
+    @Override
+    public int compare(AngleTracker o1, AngleTracker o2) {
+        if(o1.angle > o2.angle) return 1;
+        else if(o1.angle == o2.angle) return 0;
+        else return -1;
+    }
+}
+
 public class Square implements Shape {
     private List<Point> points;
     private static double tolerance = 0.0000001;
@@ -23,22 +38,19 @@ public class Square implements Shape {
      */
     public Square(Point... vertices) {
         points = new ArrayList<>();
-        Point lastPoint = null;
-        double sideLength = -1;
+        double prevAngle = -1;
+        double angle;
         for(int i = 0; i < 4 && i < vertices.length; i++){
             Point curPoint = vertices[i];
-            if(lastPoint != null) {
-                if (sideLength < 0) {
-                    sideLength = correction(getSideLengths(lastPoint, curPoint));
-                }
-                else{
-                    if(correction(getSideLengths(lastPoint, curPoint)) != sideLength){
-                        throw new IllegalArgumentException("Points do not form a square");
-                    }
-                }
-            }
             points.add(curPoint);
-            lastPoint = curPoint;
+        }
+        Point center = center();
+        for(Point point: points){
+            angle = determineAngle(point.x - center.x, point.y - center.y);
+            if(angle < prevAngle){
+                throw new IllegalArgumentException("Points not in the correct order");
+            }
+            prevAngle = angle;
         }
     }
 
@@ -46,6 +58,7 @@ public class Square implements Shape {
     public Square rotateBy(int degrees) {
         //Uses list rather than array to ensure abstractions can be used properly
         List<Point> newPoints = new ArrayList<>();
+        List<AngleTracker> angles = new ArrayList<>();
         Point center = this.center();
         //Precalculates the cosine and sine to prevent repeated calculations
         double cosine = correction(Math.cos(Math.toRadians(degrees)));
@@ -53,12 +66,17 @@ public class Square implements Shape {
         for(Point point: points){
             double xDist = point.x - center.x;
             double yDist = point.y - center.y;
-            double newX = center.x + xDist * cosine - yDist * sine;
-            double newY = center.y + xDist *sine + yDist * cosine;
-            newPoints.add(new Point(point.name, correction(newX), correction(newY)));
+            double newX = xDist * cosine - yDist * sine;
+            double newY = xDist *sine + yDist * cosine;
+            Point newPoint = new Point(point.name, correction(center.x + newX), correction(center().y + newY));
+            angles.add(new AngleTracker(determineAngle(newX, newY), newPoint));
         }
+        angles.sort(new AngleComparator());
         //Needed so that I can use the toArray method that returns an array of type T
         Point[] argOfPoints = new Point[4];
+        for(AngleTracker angleTrack: angles){
+            newPoints.add(angleTrack.point);
+        }
         return new Square(newPoints.toArray(argOfPoints));
     }
 
@@ -89,8 +107,8 @@ public class Square implements Shape {
             xValues.add(point.x);
             yValues.add(point.y);
         }
-        double midX = xValues.stream().reduce(0.0, (a,b) -> a + b)/2;
-        double midY = yValues.stream().reduce(0.0, (a,b) -> a + b)/2;
+        double midX = xValues.stream().reduce(0.0, Double::sum)/2;
+        double midY = yValues.stream().reduce(0.0, Double::sum)/2;
         return new Point("mid", midX, midY);
     }
 
@@ -100,7 +118,7 @@ public class Square implements Shape {
             return rounded;
         }
         else{
-            return value;
+            return Math.round(value * 100)/100.0;
         }
     }
 
@@ -125,11 +143,33 @@ public class Square implements Shape {
 
         // prints: [(C, 4.0, 4.0); (D, 1.0, 4.0); (A, 1.0, 1.0); (B, 4.0, 1.0)]
         // note that the names denote which point has moved where
-        System.out.println(sq2.rotateBy(270));
+        System.out.println(sq2.rotateBy(90));
     }
 
     private double getSideLengths(Point p1, Point p2){
         return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) +
                 (p1.y - p2.y) * (p1.y - p2.y));
+    }
+
+    private boolean rightAngle(Point p1, Point p2, Point p3){
+        double dotProduct = correction((p1.x - p2.x) * (p3.x - p2.x) + (p1.y - p2.y) * (p3.y - p2.y));
+        return dotProduct == 0;
+    }
+
+    private double determineAngle(double x, double y){
+        double angle = Math.atan(y/x);
+        if(y < 0 && x < 0){
+            angle += Math.PI;
+        }
+        else if(angle < 0){
+            if(y < 0) {
+                angle += 2 * Math.PI;
+            }
+            else{
+                angle += Math.PI;
+            }
+        }
+//        System.out.println(angle);
+        return angle;
     }
 }

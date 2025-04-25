@@ -136,4 +136,8 @@ public class SquareSymmetries implements Symmetries<Square>{
         Point[] input = new Point[4];
         return new Square(points.toArray(input));
     }
+
+    private List<Point> sortPoints(List<Point> points){
+        return null;
+    }
 }
