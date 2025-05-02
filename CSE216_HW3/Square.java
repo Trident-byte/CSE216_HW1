@@ -8,7 +8,7 @@ import java.util.*;
  */
 
 public class Square implements Shape {
-    private List<Point> points;
+    public List<Point> points;
     private static double tolerance = 0.0000001;
     /**
      * The constructor accepts an array of <code>Point</code>s to form the vertices of the square. If more than four
@@ -28,6 +28,7 @@ public class Square implements Shape {
             points.add(curPoint);
         }
         Point center = center();
+        //If square is centered then test the square
         for(Point point: points){
             Point adjustedCenter = new Point("test", point.x - center.x, point.y - center.y);
             angle = determineAngle(adjustedCenter);
@@ -41,34 +42,29 @@ public class Square implements Shape {
     @Override
     public Square rotateBy(int degrees) {
         //Uses list rather than array to ensure abstractions can be used properly
-        List<Point> newPoints = new ArrayList<>();
+        List<Point> newPoints = new ArrayList<>(4);
         Point center = this.center();
         //Precalculates the cosine and sine to prevent repeated calculations
-        double cosine = correction(Math.cos(Math.toRadians(degrees)));
-        double sine = correction(Math.sin(Math.toRadians(degrees)));
-        for(Point point: points){
-            double xDist = point.x - center.x;
-            double yDist = point.y - center.y;
-            double newX = xDist * cosine - yDist * sine;
-            double newY = xDist *sine + yDist * cosine;
+        double cosine = Math.cos(Math.toRadians(degrees));
+        double sine = Math.sin(Math.toRadians(degrees));
+        Square adjusted = (Square) this.translateBy(-center.x, -center.y);
+        for(Point point: adjusted.points){
+            double newX = correction(point.x * cosine - point.y * sine);
+            double newY = correction(point.x *sine + point.y * cosine);
             Point newPoint = new Point(point.name, newX, newY);
             newPoints.add(newPoint);
         }
         newPoints.sort(Comparator.comparing(this::determineAngle));
-        for(Point point: newPoints){
-            point.x += center.x;
-            point.y += center.y;
-        }
-//        //Needed so that I can use the toArray method that returns an array of type T
+        //Needed so that I can use the toArray method that returns an array of type T
         Point[] argOfPoints = new Point[4];
-        return new Square(newPoints.toArray(argOfPoints));
+        return (Square) (new Square(newPoints.toArray(argOfPoints))).translateBy(center.x, center.y);
     }
 
     @Override
     public Shape translateBy(double x, double y) {
         List<Point> newPoints = new ArrayList<>();
         for(Point point: points){
-            newPoints.add(new Point(point.name, point.x + x, point.y + y));
+            newPoints.add(new Point(point.name, correction(point.x + x), correction(point.y + y)));
         }
         Point[] argOfPoints = new Point[4];
         return new Square(newPoints.toArray(argOfPoints));
@@ -91,8 +87,8 @@ public class Square implements Shape {
             xValues.add(point.x);
             yValues.add(point.y);
         }
-        double midX = xValues.stream().reduce(0.0, Double::sum)/2;
-        double midY = yValues.stream().reduce(0.0, Double::sum)/2;
+        double midX = xValues.stream().reduce(0.0, Double::sum)/xValues.size();
+        double midY = yValues.stream().reduce(0.0, Double::sum)/yValues.size();
         return new Point("mid", midX, midY);
     }
 
@@ -106,10 +102,6 @@ public class Square implements Shape {
         }
     }
 
-    public List<Point> getPoints(){
-        return points;
-    }
-
     public static void main(String... args) {
         Point  a = new Point("A", 1, 4);
         Point  b = new Point("B", 1, 1);
@@ -118,7 +110,7 @@ public class Square implements Shape {
 
         Point p = new Point("P", 0.3, 0.3);
 
-//        Square sq1 = new Square(a, b, c, d); // throws an IllegalArgumentException
+        Square sq1 = new Square(a, b, c, d); // throws an IllegalArgumentException
         Square sq2 = new Square(d, a, b, c); // forms a square
         Square sq3 = new Square(p, p, p, p); // forms a "trivial" square (this is a limiting case, but still valid)
 
@@ -131,17 +123,9 @@ public class Square implements Shape {
     }
 
     private double determineAngle(Point p){
-        double angle = Math.atan(p.y/p.x);
-        if(p.y < 0 && p.x < 0){
-            angle += Math.PI;
-        }
-        else if(angle < 0){
-            if(p.y < 0) {
-                angle += 2 * Math.PI;
-            }
-            else{
-                angle += Math.PI;
-            }
+        double angle = Math.atan2(p.y, p.x);
+        if(angle < 0){
+            angle += 2 * Math.PI;
         }
 //        System.out.println(angle);
         return angle;

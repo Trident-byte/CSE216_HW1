@@ -9,8 +9,8 @@ public class SquareSymmetries implements Symmetries<Square>{
     }
 
     public boolean areSymmetric(Square s1, Square s2){
-        List<Point> firstSquarePoints = s1.getPoints();
-        List<Point> secondSquarePoints = s2.getPoints();
+        List<Point> firstSquarePoints = s1.points;
+        List<Point> secondSquarePoints = s2.points;
         Point firstPoint = firstSquarePoints.get(0);
         Point secondPoint = firstSquarePoints.get(1);
         Point thirdPoint = secondSquarePoints.get(0);
@@ -43,13 +43,12 @@ public class SquareSymmetries implements Symmetries<Square>{
         for(int i = 0; i < 4; i++){
             Square test = s.rotateBy(i * 90);
             if(areSymmetric(s, test)){
-                System.out.println(i * 90);
                 symmetricSquares.add(test);
             }
         }
         List<Square> possibleSymmetries = new ArrayList<>();
-        possibleSymmetries.add(horizontalReflection(s));
         possibleSymmetries.add(verticalReflection(s));
+        possibleSymmetries.add(horizontalReflection(s));
         possibleSymmetries.add(diagonalReflection(s));
         possibleSymmetries.add(counterDiagonalReflection(s));
         for(Square test: possibleSymmetries){
@@ -60,111 +59,43 @@ public class SquareSymmetries implements Symmetries<Square>{
         return symmetricSquares;
     }
 
-    public Square horizontalReflection(Square s){
-        List<Point> points = new ArrayList<>();
-        Point center = s.center();
-        Square adjusted = (Square) s.translateBy(-center.x, -center.y);
-        double sideLength = getSideLengths(s.getPoints().get(0), s.getPoints().get(1));
-        for(Point point: adjusted.getPoints()){
-            double newX = point.x;
-            if(point.x < 0){
-                newX += sideLength;
-            }
-            else{
-                newX -= sideLength;
-            }
-            points.add(new Point(point.name, newX, point.y));
-        }
-        points.sort(Comparator.comparing(this::determineAngle));
-        Point[] input = new Point[4];
-        return (Square)(new Square(points.toArray(input))).translateBy(center.x, center.y);
+    private Square horizontalReflection(Square s){
+        Point[] points = new Point[4];
+        List<Point> squarePoints = s.points;
+        points[0] = new Point(squarePoints.get(1).name, squarePoints.get(0).x, squarePoints.get(0).y);
+        points[1] = new Point(squarePoints.get(0).name, squarePoints.get(1).x, squarePoints.get(1).y);
+        points[2] = new Point(squarePoints.get(3).name, squarePoints.get(2).x, squarePoints.get(2).y);
+        points[3] = new Point(squarePoints.get(2).name, squarePoints.get(3).x, squarePoints.get(3).y);
+        return new Square(points);
     }
 
-    public Square verticalReflection(Square s){
-        List<Point> points = new ArrayList<>();
-        double sideLength = getSideLengths(s.getPoints().get(0), s.getPoints().get(1));
-        Point center = s.center();
-        Square adjusted = (Square) s.translateBy(-center.x, -center.y);
-        for(Point point: adjusted.getPoints()){
-            double newY;
-            if(point.y < 0){
-                newY = point.y + sideLength;
-            }
-            else{
-                newY = point.y - sideLength;
-            }
-            points.add(new Point(point.name, point.x,newY));
-        }
-        points.sort(Comparator.comparing(this::determineAngle));
-        Point[] input = new Point[4];
-        return (Square)(new Square(points.toArray(input))).translateBy(center.x, center.y);
+    private Square verticalReflection(Square s){
+        Point[] points = new Point[4];
+        List<Point> squarePoints = s.points;
+        points[0] = new Point(squarePoints.get(3).name, squarePoints.get(0).x, squarePoints.get(0).y);
+        points[1] = new Point(squarePoints.get(2).name, squarePoints.get(1).x, squarePoints.get(1).y);
+        points[2] = new Point(squarePoints.get(1).name, squarePoints.get(2).x, squarePoints.get(2).y);
+        points[3] = new Point(squarePoints.get(0).name, squarePoints.get(3).x, squarePoints.get(3).y);
+        return new Square(points);
     }
 
-    public Square diagonalReflection(Square s){
-        List<Point> points = new ArrayList<>();
-        Point center = s.center();
-        Square adjusted = (Square) s.translateBy(-center.x, -center.y);
-        double sideLength = getSideLengths(s.getPoints().get(0), s.getPoints().get(1));
-        for(Point point: adjusted.getPoints()){
-            double newX = point.x;
-            double newY = point.y;
-            if(point.x < 0 && point.y < 0){
-                newX += sideLength;
-                newY += sideLength;
-            }
-            else if(point.x > 0 && point.y > 0){
-                newX -= sideLength;
-                newY -= sideLength;
-            }
-            points.add(new Point(point.name, newX,newY));
-        }
-        points.sort(Comparator.comparing(this::determineAngle));
-        Point[] input = new Point[4];
-        return (Square)(new Square(points.toArray(input))).translateBy(center.x, center.y);
+    private Square diagonalReflection(Square s){
+        Point[] points = new Point[4];
+        List<Point> squarePoints = s.points;
+        points[0] = new Point(squarePoints.get(0).name, squarePoints.get(0).x, squarePoints.get(0).y);
+        points[1] = new Point(squarePoints.get(3).name, squarePoints.get(1).x, squarePoints.get(1).y);
+        points[2] = new Point(squarePoints.get(2).name, squarePoints.get(2).x, squarePoints.get(2).y);
+        points[3] = new Point(squarePoints.get(1).name, squarePoints.get(3).x, squarePoints.get(3).y);
+        return new Square(points);
     }
 
-    public Square counterDiagonalReflection(Square s){
-        List<Point> points = new ArrayList<>();
-        Point center = s.center();
-        Square adjusted = (Square) s.translateBy(-center.x, -center.y);
-        double sideLength = getSideLengths(s.getPoints().get(0), s.getPoints().get(1));
-        for(Point point: adjusted.getPoints()){
-            double newX = point.x;
-            double newY = point.y;
-            if(point.x < center.x && point.y > center.y){
-                newX += sideLength;
-                newY -= sideLength;
-            }
-            else if(point.x > center.x && point.y < center.y){
-                newX -= sideLength;
-                newY += sideLength;
-            }
-            points.add(new Point(point.name, newX,newY));
-        }
-        points.sort(Comparator.comparing(this::determineAngle));
-        Point[] input = new Point[4];
-        return (Square)(new Square(points.toArray(input))).translateBy(center.x, center.y);
-    }
-
-    private double determineAngle(Point p){
-        double angle = Math.atan(p.y/p.x);
-        if(p.y < 0 && p.x < 0){
-            angle += Math.PI;
-        }
-        else if(angle < 0){
-            if(p.y < 0) {
-                angle += 2 * Math.PI;
-            }
-            else{
-                angle += Math.PI;
-            }
-        }
-//        System.out.println(angle);
-        return angle;
-    }
-
-    private double[] adjustCoords(Point p, Point center){
-        double[] adjusted = {p.x - center.x, p.y - center.y};
-        return adjusted;
+    private Square counterDiagonalReflection(Square s){
+        Point[] points = new Point[4];
+        List<Point> squarePoints = s.points;
+        points[0] = new Point(squarePoints.get(2).name, squarePoints.get(0).x, squarePoints.get(0).y);
+        points[1] = new Point(squarePoints.get(1).name, squarePoints.get(1).x, squarePoints.get(1).y);
+        points[2] = new Point(squarePoints.get(0).name, squarePoints.get(2).x, squarePoints.get(2).y);
+        points[3] = new Point(squarePoints.get(3).name, squarePoints.get(3).x, squarePoints.get(3).y);
+        return new Square(points);
     }
 }
