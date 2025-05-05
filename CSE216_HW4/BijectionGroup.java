@@ -5,15 +5,10 @@ import java.util.stream.Stream;
 
 public class BijectionGroup {
     //your code goes here
-    List<Map> mappings;
 
-    public BijectionGroup(List<Map> mappings){
-        this.mappings = mappings;
-    }
-
-    private static <T> List<Function<T,T>> bijectionsOf(Set<T> domain) {
+    private static <T> Set<Function<T,T>> bijectionsOf(Set<T> domain) {
         List<T> domainToList = new ArrayList<>(domain);
-        List<Function<T,T>> funcs = new ArrayList<>();
+        Set<Function<T,T>> funcs = new HashSet<>();
         List<Map<T,T>> mappings = findOneToOneCorrespondanceMappings(domainToList, new HashSet<>(), 0);
         for(Map<T,T> mapping: mappings){
             Function<T,T> mappingFunc = (a) ->{
